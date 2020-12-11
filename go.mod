@@ -3,7 +3,9 @@ module github.com/pzl/wapb
 go 1.15
 
 require (
+	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/go-chi/chi v4.0.2+incompatible
+	github.com/json-iterator/go v1.1.10
 	github.com/pzl/mstk v0.0.0-20200107022131-6ad83d2e8eb8
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546

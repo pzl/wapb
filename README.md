@@ -35,3 +35,9 @@ This is intended to be on a local network deployment, in a semi-trusted environm
 
 - Encryption of contents
 - Login / Authorization
+
+---
+
+Now that the motivation section is out of the way, here's what is left of the product:
+
+Single binary, web assets bundled inside. Has a web interface and an open HTTP API. Storage is configurable. Point it to a directory path, and a persistent store will be used there. Or pass the flag with no argument (empty string) for an in-memory data store. Since that option just came free with the DB I used.

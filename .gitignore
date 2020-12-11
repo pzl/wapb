@@ -1,2 +1,9 @@
 bin/
 *.db
+
+
+# badgerDB files
+*.vlog
+*.sst
+KEYREGISTRY
+MANIFEST
