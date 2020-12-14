@@ -23,5 +23,10 @@ export default {
       links: ['text','file','link']
     }
   },
+  mounted() {
+    if (window && window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) {
+      this.$vuetify.theme.dark = true;
+    }
+  }
 }
 </script>
