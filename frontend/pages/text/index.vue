@@ -17,21 +17,14 @@
 			<v-btn block elevation="2" x-large color="success" :loading="isLoading" @click="create" :disabled="toCreate.text == ''">Create</v-btn>
 		</v-col>
 		<v-col>
-			<v-row v-for="t in texts" :key="t.id">
-				<v-col cols="1">
-					<v-icon v-if="t.burn">mdi-fire</v-icon>
-					<v-icon v-if="t.ttl" :title="t.ttl">mdi-alarm</v-icon>
-				</v-col>
-				<v-col>
-					<nuxt-link :to="'/text/'+t.id">{{ !t.burn ? t.text : '&lt;censored&gt;' }}</nuxt-link>
-				</v-col>
-			</v-row>
+			<text-row v-for="t in texts" :key="t.id" v-bind="t" />
 		</v-col>
 	</v-row>
 </template>
 
 
 <script>
+import TextRow from '~/components/textRow'
 
 const createFactory = () => {
 	return {
@@ -113,6 +106,8 @@ export default {
 				this.toCreate.ttl = this.selectedTimePreset.value;
 			}
 		}
-	}
+	},
+	components: { TextRow }
+
 }
 </script>
