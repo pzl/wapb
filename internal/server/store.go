@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	badger "github.com/dgraph-io/badger/v2"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -36,14 +38,16 @@ func (u UMField) Clear(flag UMField) UMField  { return u &^ flag }
 func (u UMField) Toggle(flag UMField) UMField { return u ^ flag }
 func (u UMField) Has(flag UMField) bool       { return u&flag != 0 }
 
-type ListCallback func(UMField) func([]byte) error
+type BurnCensorFunc func([]byte) ([]byte, error)
 
-func getAllForType(db *badger.DB, sk StorageKey, cb ListCallback) error {
+func getAllForType(db *badger.DB, sk StorageKey, censor BurnCensorFunc) ([][]byte, error) {
+	total := make([][]byte, 0, 20)
+
 	pfx := []byte{byte(sk)}
 	opts := badger.DefaultIteratorOptions
 	opts.PrefetchValues = true
 	opts.Prefix = pfx
-	return db.View(func(tx *badger.Txn) error {
+	err := db.View(func(tx *badger.Txn) error {
 		it := tx.NewIterator(opts)
 		defer it.Close()
 		for it.Seek(pfx); it.ValidForPrefix(pfx); it.Next() {
@@ -51,13 +55,29 @@ func getAllForType(db *badger.DB, sk StorageKey, cb ListCallback) error {
 			if u.Has(Hidden) {
 				continue
 			}
-			cb2 := cb(u)
-			if err := it.Item().Value(cb2); err != nil {
+
+			if err := it.Item().Value(func(v []byte) error {
+				var buf []byte
+				var err error
+				if u.Has(BurnAfterRead) {
+					buf, err = censor(v)
+					if err != nil {
+						return err
+					}
+				} else {
+					buf = make([]byte, len(v))
+					copy(buf, v)
+				}
+				total = append(total, buf)
+				return nil
+			}); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+
+	return total, err
 }
 
 func makeMeta(c CommonFields) UMField {
@@ -68,22 +88,22 @@ func makeMeta(c CommonFields) UMField {
 	return u
 }
 
-func writeType(db *badger.DB, sk StorageKey, id string, item interface{}, u UMField) error {
+func writeType(db *badger.DB, sk StorageKey, id string, item interface{}, u UMField, ttl int64) error {
 	buf, err := jsCfg.Marshal(item)
 	if err != nil {
 		return err
 	}
-
-	key := makeKey(sk, id)
-	return db.Update(func(tx *badger.Txn) error {
-		return tx.SetEntry(badger.NewEntry(key, buf).WithMeta(byte(u)))
-	})
+	return writeBytes(db, sk, id, buf, u, ttl)
 }
 
-func writeBytes(db *badger.DB, sk StorageKey, id string, buf []byte, u UMField) error {
+func writeBytes(db *badger.DB, sk StorageKey, id string, buf []byte, u UMField, ttl int64) error {
 	key := makeKey(sk, id)
+	entry := badger.NewEntry(key, buf).WithMeta(byte(u))
+	if ttl > 0 {
+		entry = entry.WithTTL(time.Duration(ttl) * time.Second)
+	}
 	return db.Update(func(tx *badger.Txn) error {
-		return tx.SetEntry(badger.NewEntry(key, buf).WithMeta(byte(u)))
+		return tx.SetEntry(entry)
 	})
 }
 

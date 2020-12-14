@@ -15,31 +15,16 @@ type Text struct {
 }
 
 func (s *Server) TextListHandler(w http.ResponseWriter, r *http.Request) {
-	files := make([][]byte, 0, 20)
 
-	err := getAllForType(s.DB, StorageTextKey, func(u UMField) func([]byte) error {
-		return func(v []byte) error {
-			var buf []byte
-			if u.Has(BurnAfterRead) {
-				// clear out the content field
-				var t Text
-				err := jsCfg.Unmarshal(v, &t)
-				if err != nil {
-					return err
-				}
-				t.Text = ""
-				buf, err = jsCfg.Marshal(t)
-				if err != nil {
-					return err
-				}
-			} else {
-				// normal, just grab the bytes
-				buf = make([]byte, len(v))
-				copy(buf, v)
-			}
-			files = append(files, buf)
-			return nil
+	files, err := getAllForType(s.DB, StorageTextKey, func(v []byte) ([]byte, error) {
+		var t Text
+		err := jsCfg.Unmarshal(v, &t)
+		if err != nil {
+			return nil, err
 		}
+		t.Text = ""
+		return jsCfg.Marshal(t)
+
 	})
 
 	if err != nil {
@@ -126,7 +111,7 @@ func (s *Server) TextCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := writeBytes(s.DB, StorageTextKey, t.ID, buf, makeMeta(t.CommonFields)); err != nil {
+	if err := writeBytes(s.DB, StorageTextKey, t.ID, buf, makeMeta(t.CommonFields), t.TTL); err != nil {
 		s.Log.WithError(err).Error("error writing text record")
 		w.WriteHeader(http.StatusInternalServerError)
 		return

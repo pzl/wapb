@@ -1,8 +1,21 @@
 <template>
 	<div>
-		<h1>{{ text }}</h1>
+		<v-card shaped :loading="loading">
+			<template slot="progress">
+				<v-progress-linear color="deep-purple" height="10" indeterminate />
+			</template>
 
-		<p v-if="burn">This message has self-destructed. Make sure you know its contents. It will be gone if you try to refresh or close the tab</p>
+			<v-card-title>{{ id }}</v-card-title>
+			<v-card-subtitle>{{ creationTime }}</v-card-subtitle>
+			<v-card-text>
+				<pre>{{ text }}</pre>
+			</v-card-text>
+			<v-card-actions>
+				<v-btn color="red" text @click="processDelete">Delete</v-btn>
+			</v-card-actions>
+		</v-card>
+
+		<v-alert type="warning" v-if="burn">This message has self-destructed. Make sure you know its contents. It will be gone if you try to refresh or close the tab</v-alert>
 	</div>
 </template>
 
@@ -11,8 +24,12 @@
 export default {
 	data () {
 		return {
+			id: "",
 			text: "",
 			burn: false,
+			ttl: null,
+			created: 0,
+			loading: false,
 		}
 	},
 	async asyncData(context) {
@@ -22,6 +39,17 @@ export default {
 								context.error(e)
 							})
 		return data
+	},
+	methods: {
+		processDelete() {
+			this.loading = true;
+			setTimeout(() => { this.loading = false; }, 1500)
+		}
+	},
+	computed: {
+		creationTime() {
+			return new Date(this.created*1000)
+		}
 	}
 }
 </script>

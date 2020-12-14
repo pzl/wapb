@@ -16,7 +16,7 @@ import (
 type CommonFields struct {
 	BurnAfterRead bool   `json:"burn,omitempty"`
 	Hidden        bool   `json:"hidden,omitempty"`
-	TTL           int    `json:"ttl,omitempty"`
+	TTL           int64  `json:"ttl,omitempty"`
 	ID            string `json:"id,omitempty"`
 	Created       int64  `json:"created,omitempty"` // timestamp of creation
 
@@ -81,5 +81,5 @@ func newID() string {
 		// odd. OK let's do it an error-free way
 		binary.LittleEndian.PutUint64(r, uint64(time.Now().Unix()))
 	}
-	return hex.EncodeToString(r[:2])
+	return hex.EncodeToString(r[:3])
 }

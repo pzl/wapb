@@ -3,7 +3,7 @@
 		<v-col>
 			<v-alert v-if="alert" dense border="left" :type="alert.type" dismissable @input="alert = null">{{ alert.message }}</v-alert>
 			<v-textarea name="text" label="Text" hint="New Text" v-model="toCreate.text" outlined />
-			<v-row no-gutter>
+			<v-row no-gutters>
 				<v-col>
 					<v-checkbox name="Expire" label="Expire After Time" v-model="showTTL" />
 				</v-col>
@@ -17,9 +17,15 @@
 			<v-btn block elevation="2" x-large color="success" :loading="isLoading" @click="create" :disabled="toCreate.text == ''">Create</v-btn>
 		</v-col>
 		<v-col>
-			<div v-for="t in texts" :key="t.id">
-				<p><nuxt-link :to="'/text/'+t.id">{{ t.text }}</nuxt-link></p>
-			</div>
+			<v-row v-for="t in texts" :key="t.id">
+				<v-col cols="1">
+					<v-icon v-if="t.burn">mdi-fire</v-icon>
+					<v-icon v-if="t.ttl" :title="t.ttl">mdi-alarm</v-icon>
+				</v-col>
+				<v-col>
+					<nuxt-link :to="'/text/'+t.id">{{ !t.burn ? t.text : '&lt;censored&gt;' }}</nuxt-link>
+				</v-col>
+			</v-row>
 		</v-col>
 	</v-row>
 </template>
