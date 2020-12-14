@@ -1,5 +1,7 @@
 <template>
-	<div>
+	<v-container>
+		<v-alert type="warning" v-if="burn">This message has self-destructed. Make sure you know its contents. It will be gone if you try to refresh or close the tab</v-alert>
+
 		<v-card shaped :loading="loading">
 			<template slot="progress">
 				<v-progress-linear color="deep-purple" height="10" indeterminate />
@@ -15,8 +17,7 @@
 			</v-card-actions>
 		</v-card>
 
-		<v-alert type="warning" v-if="burn">This message has self-destructed. Make sure you know its contents. It will be gone if you try to refresh or close the tab</v-alert>
-	</div>
+	</v-container>
 </template>
 
 
