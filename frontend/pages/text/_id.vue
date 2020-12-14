@@ -12,7 +12,7 @@
 			<v-card-title>
 				<v-row>
 					<v-col>{{ id }}</v-col>
-					<v-col class="text-right"><v-icon large color="red">mdi-fire</v-icon></v-col>
+					<v-col v-if="burn" class="text-right"><v-icon large color="red">mdi-fire</v-icon></v-col>
 				</v-row>
 			</v-card-title>
 			<v-card-subtitle>{{ creationTime }}</v-card-subtitle>
