@@ -134,4 +134,12 @@ func (s *Server) TextCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (s *Server) TextCreateManualHandler(w http.ResponseWriter, r *http.Request) {}
-func (s *Server) TextDeleteHandler(w http.ResponseWriter, r *http.Request)       {}
+func (s *Server) TextDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	err := deleteRecord(s.DB, StorageTextKey, chi.URLParam(r, "id"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}

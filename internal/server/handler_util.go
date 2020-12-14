@@ -30,7 +30,7 @@ func setCommonFieldsByQuery(c *CommonFields, r *http.Request) {
 		c.BurnAfterRead = false
 	}
 
-	switch ttl, err := strconv.Atoi(r.URL.Query().Get("ttl")); {
+	switch ttl, err := strconv.ParseInt(r.URL.Query().Get("ttl"), 10, 64); {
 	case err != nil:
 		c.TTL = 0
 	case ttl <= 0:
