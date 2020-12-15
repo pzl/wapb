@@ -5,12 +5,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/go-chi/chi"
 )
 
 type CommonFields struct {
@@ -20,6 +24,73 @@ type CommonFields struct {
 	ID            string `json:"id,omitempty"`
 	Created       int64  `json:"created,omitempty"` // timestamp of creation
 
+}
+
+func (s *Server) doListHandler(w http.ResponseWriter, sk StorageKey) {
+	items, err := getAllForType(s.DB, sk)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	pfx := []byte(`{"data":[`)
+	out := bytes.Join(items, []byte{','})
+
+	out = append(pfx, out...)
+	out = append(out, []byte(`]}`)...)
+	w.Write(out)
+}
+
+func (s *Server) doGetOneHandler(w http.ResponseWriter, r *http.Request, sk StorageKey, doers map[string]func([]byte)) {
+	id := chi.URLParam(r, "id")
+
+	buf, err := getOneBytes(s.DB, nil, sk, id)
+	if err != nil && err == badger.ErrKeyNotFound {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		s.Log.WithError(err).Error("error fetching record")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// if a custom handler was passed, respond with that Otherwise parrot out the bytes
+	if cb, has := doers[r.Header.Get("Accept")]; has {
+		cb(buf)
+		return
+	}
+
+	w.Write(buf)
+}
+
+func censorPreventBurn(sk StorageKey, data []byte) ([]byte, error) {
+	switch sk {
+	case StorageFileGroupKey:
+		fg := FileGroup{}
+		if err := jsCfg.Unmarshal(data, &fg); err != nil {
+			return nil, err
+		}
+		fg.Files = nil
+		return jsCfg.Marshal(fg)
+	case StorageTextKey:
+		t := Text{}
+		if err := jsCfg.Unmarshal(data, &t); err != nil {
+			return nil, err
+		}
+		t.Text = ""
+		return jsCfg.Marshal(t)
+	case StorageLinkKey:
+		l := Link{}
+		if err := jsCfg.Unmarshal(data, &l); err != nil {
+			return nil, err
+		}
+		return jsCfg.Marshal(l)
+	case StorageFileKey:
+		return nil, errors.New("unable to uncensor file contents")
+	}
+
+	return nil, errors.New("type not found")
 }
 
 func setCommonFieldsByQuery(c *CommonFields, r *http.Request) {

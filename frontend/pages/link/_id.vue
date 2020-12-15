@@ -17,8 +17,8 @@
 			</v-card-title>
 			<v-card-subtitle>{{ creationTime }}</v-card-subtitle>
 			<v-card-text class="content-text">
-				<v-textarea outlined hide-details full-width v-if="showAsEditable" :value="text" />
-				<pre v-else>{{ text }}</pre>
+				<v-textarea outlined hide-details full-width v-if="showAsEditable" :value="url" />
+				<a :href="url" v-else>{{ url }}</a>
 			</v-card-text>
 			<v-card-actions>
 				<v-btn icon @click="showAsEditable = !showAsEditable"><v-icon>mdi-file-document-edit-outline</v-icon></v-btn>
@@ -38,7 +38,7 @@ export default {
 	data () {
 		return {
 			id: "",
-			text: "",
+			url: "",
 			burn: false,
 			ttl: null,
 			created: 0,
@@ -54,7 +54,7 @@ export default {
 		}
 	},
 	async asyncData(context) {
-		const data =  await context.$http.$get('http://localhost:7473/api/v1/text/'+context.params.id)
+		const data =  await context.$http.$get('http://localhost:7473/api/v1/link/'+context.params.id)
 							.catch(e => {
 								console.log(e)
 								context.error(e)
@@ -65,10 +65,10 @@ export default {
 		async processDelete() {
 			this.loading = true;
 			this.alert.show = false;
-			await this.$http.$delete('http://localhost:7473/api/v1/text/'+this.id)
+			await this.$http.$delete('http://localhost:7473/api/v1/link/'+this.id)
 							.then(() => {
 								this.$router.push({
-									path: "/text"
+									path: "/link"
 								})
 							})
 							.catch(e => {

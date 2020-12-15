@@ -41,22 +41,28 @@ func (s *Server) routeAPI() {
 		v1.Use(contentJSON) // by default
 		v1.Use(mstk.APIVer(1))
 
-		v1.Get("/file", s.FileListHandler)
-		v1.Post("/file", s.FileCreateHandler)
-		v1.Get("/file/{id}", s.FileGetHandler)
-		v1.Put("/file/{id}", s.FileCreateManualHandler)
-		v1.Delete("/file/{id}", s.FileDeleteHandler)
+		v1.Get("/file", s.FileGroupListHandler)
+		v1.Post("/file", s.FileGroupCreateHandler)
+		v1.Post("/file/{id}", s.FileUploadHandler)
+		v1.Get("/file/{id}", s.FileGroupGetHandler)
+		//v1.Put("/file/{id}", s.FileCreateManualHandler)
+		v1.Delete("/file/{id}", s.FileGroupDeleteHandler)
+		v1.Get("/file/{gid}/{fid}", s.FileContentsGetHandler)
+
+		// debug routes to check on file blobs. Not API stable
+		v1.Get("/_contents", s.FileContentsListHandler)
+		v1.Get("/_contents/{fid}", s.FileContentsGetHandler)
 
 		v1.Get("/link", s.LinkListHandler)
 		v1.Post("/link", s.LinkCreateHandler)
 		v1.Get("/link/{id}", s.LinkGetHandler)
-		v1.Put("/link/{id}", s.LinkCreateManualHandler)
+		//v1.Put("/link/{id}", s.LinkCreateManualHandler)
 		v1.Delete("/link/{id}", s.LinkDeleteHandler)
 
 		v1.Get("/text", s.TextListHandler)
 		v1.Post("/text", s.TextCreateHandler)
 		v1.Get("/text/{id}", s.TextGetHandler)
-		v1.Put("/text/{id}", s.TextCreateManualHandler)
+		//v1.Put("/text/{id}", s.TextCreateManualHandler)
 		v1.Delete("/text/{id}", s.TextDeleteHandler)
 	})
 }

@@ -10,9 +10,10 @@ import (
 type StorageKey byte
 
 const (
-	StorageFileKey StorageKey = 'f'
-	StorageTextKey StorageKey = 't'
-	StorageLinkKey StorageKey = 'l'
+	StorageFileGroupKey StorageKey = 'g'
+	StorageFileKey      StorageKey = 'f'
+	StorageTextKey      StorageKey = 't'
+	StorageLinkKey      StorageKey = 'l'
 )
 
 var jsCfg = jsoniter.Config{
@@ -38,9 +39,7 @@ func (u UMField) Clear(flag UMField) UMField  { return u &^ flag }
 func (u UMField) Toggle(flag UMField) UMField { return u ^ flag }
 func (u UMField) Has(flag UMField) bool       { return u&flag != 0 }
 
-type BurnCensorFunc func([]byte) ([]byte, error)
-
-func getAllForType(db *badger.DB, sk StorageKey, censor BurnCensorFunc) ([][]byte, error) {
+func getAllForType(db *badger.DB, sk StorageKey) ([][]byte, error) {
 	total := make([][]byte, 0, 20)
 
 	pfx := []byte{byte(sk)}
@@ -60,7 +59,7 @@ func getAllForType(db *badger.DB, sk StorageKey, censor BurnCensorFunc) ([][]byt
 				var buf []byte
 				var err error
 				if u.Has(BurnAfterRead) {
-					buf, err = censor(v)
+					buf, err = censorPreventBurn(sk, v)
 					if err != nil {
 						return err
 					}
@@ -107,7 +106,13 @@ func writeBytes(db *badger.DB, sk StorageKey, id string, buf []byte, u UMField, 
 	})
 }
 
-func _getOne(db *badger.DB, sk StorageKey, id string, cb func([]byte) error) error {
+type FetchOpts struct {
+	SkipBurn bool // does not burn item on read
+}
+
+var DontBurn = &FetchOpts{SkipBurn: true}
+
+func _getOne(db *badger.DB, f *FetchOpts, sk StorageKey, id string, cb func([]byte) error) error {
 	key := makeKey(sk, id)
 
 	err := db.View(func(tx *badger.Txn) error {
@@ -119,7 +124,7 @@ func _getOne(db *badger.DB, sk StorageKey, id string, cb func([]byte) error) err
 		if err != nil {
 			return err
 		}
-		if UMField(item.UserMeta()).Has(BurnAfterRead) {
+		if UMField(item.UserMeta()).Has(BurnAfterRead) && !f.SkipBurn {
 			deleteRecord(db, sk, id)
 		}
 		return nil
@@ -128,9 +133,9 @@ func _getOne(db *badger.DB, sk StorageKey, id string, cb func([]byte) error) err
 	return err
 }
 
-func getOneBytes(db *badger.DB, sk StorageKey, id string) ([]byte, error) {
+func getOneBytes(db *badger.DB, f *FetchOpts, sk StorageKey, id string) ([]byte, error) {
 	var buf []byte
-	err := _getOne(db, sk, id, func(b []byte) error {
+	err := _getOne(db, f, sk, id, func(b []byte) error {
 		buf = make([]byte, len(b))
 		copy(buf, b)
 		return nil
@@ -138,9 +143,22 @@ func getOneBytes(db *badger.DB, sk StorageKey, id string) ([]byte, error) {
 	return buf, err
 }
 
-func getOne(db *badger.DB, sk StorageKey, id string, t interface{}) error {
-	return _getOne(db, sk, id, func(b []byte) error {
+func getOne(db *badger.DB, f *FetchOpts, sk StorageKey, id string, t interface{}) error {
+	return _getOne(db, f, sk, id, func(b []byte) error {
 		return jsCfg.Unmarshal(b, t)
+	})
+}
+
+func getMeta(db *badger.DB, sk StorageKey, id string) (UMField, error) {
+	var u UMField
+	key := makeKey(sk, id)
+	return u, db.View(func(tx *badger.Txn) error {
+		item, err := tx.Get(key)
+		if err != nil {
+			return err
+		}
+		u = UMField(item.UserMeta())
+		return nil
 	})
 }
 
@@ -157,4 +175,32 @@ func makeKey(sk StorageKey, id string) []byte {
 	key := []byte(id)
 	key = append([]byte{byte(sk)}, key...)
 	return key
+}
+
+type Info struct {
+	ID   string
+	Meta UMField
+}
+
+func listInfo(db *badger.DB, sk StorageKey) ([]Info, error) {
+	total := make([]Info, 0, 20)
+
+	pfx := []byte{byte(sk)}
+	opts := badger.DefaultIteratorOptions
+	opts.PrefetchValues = false
+	opts.Prefix = pfx
+	err := db.View(func(tx *badger.Txn) error {
+		it := tx.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(pfx); it.ValidForPrefix(pfx); it.Next() {
+			total = append(total, Info{
+				ID:   string(it.Item().KeyCopy(nil)[1:]),
+				Meta: UMField(it.Item().UserMeta()),
+			})
+			return nil
+		}
+		return nil
+	})
+
+	return total, err
 }

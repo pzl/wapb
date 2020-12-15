@@ -17,8 +17,8 @@
 				/>
 			</v-col>
 		</v-row>
-		<v-checkbox @change="$emit('update:burn', $event)" label="Burn After Reading" />
-		<v-checkbox @change="$emit('update:hidden', $event)" label="Hidden" />
+		<v-checkbox @change="$emit('update:burn', $event)" :value="burn" label="Burn After Reading" />
+		<v-checkbox @change="$emit('update:hidden', $event)" :value="hidden" label="Hidden" />
 	</v-container>
 </template>
 
@@ -27,6 +27,8 @@
 export default {
 	props: {
 		hidden: {}, // prevent the "hidden" property from hiding the actual HTML
+		burn: {},
+		ttl: {},
 	},
 	data() {
 		return {
