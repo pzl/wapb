@@ -115,6 +115,10 @@ var DontBurn = &FetchOpts{SkipBurn: true}
 func _getOne(db *badger.DB, f *FetchOpts, sk StorageKey, id string, cb func([]byte) error) error {
 	key := makeKey(sk, id)
 
+	if f == nil {
+		f = &FetchOpts{}
+	}
+
 	err := db.View(func(tx *badger.Txn) error {
 		item, err := tx.Get(key)
 		if err != nil {
@@ -197,7 +201,6 @@ func listInfo(db *badger.DB, sk StorageKey) ([]Info, error) {
 				ID:   string(it.Item().KeyCopy(nil)[1:]),
 				Meta: UMField(it.Item().UserMeta()),
 			})
-			return nil
 		}
 		return nil
 	})

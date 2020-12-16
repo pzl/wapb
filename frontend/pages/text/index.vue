@@ -1,6 +1,6 @@
 <template>
 	<v-row>
-		<v-col>
+		<v-col cols="12" md="">
 			<v-alert v-if="alert" dense border="left" :type="alert.type" dismissable @input="alert = null">{{ alert.message }}</v-alert>
 			<v-textarea name="text" label="Text" hint="New Text" v-model="toCreate.text" outlined />
 			<create-meta
@@ -9,7 +9,7 @@
 			/>
 			<v-btn block elevation="2" x-large color="success" :loading="isLoading" @click="create" :disabled="toCreate.text == ''">Create</v-btn>
 		</v-col>
-		<v-col>
+		<v-col cols="12" md="">
 			<text-row v-for="t in texts" :key="t.id" v-bind="t" />
 		</v-col>
 	</v-row>
@@ -38,8 +38,8 @@ export default {
 			texts: []
 		}
 	},
-	async asyncData({ $http }) {
-		const texts = await $http.$get('http://localhost:7473/api/v1/text').then(d => d.data)
+	async asyncData({ $http, $server }) {
+		const texts = await $http.$get(`${$server}/api/v1/text`).then(d => d.data)
 		return { texts }
 	},
 	methods: {
@@ -50,7 +50,7 @@ export default {
 			}
 			this.alert = null;
 			this.isLoading = true;
-			const data = await this.$http.$post('http://localhost:7473/api/v1/text', this.toCreate).then(d => {
+			const data = await this.$http.$post(`${this.$server}/api/v1/text`, this.toCreate).then(d => {
 				this.isLoading = false;
 				this.toCreate = createFactory()
 				this.$refs.meta.hideTTL()

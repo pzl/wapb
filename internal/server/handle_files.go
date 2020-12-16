@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 
@@ -22,6 +23,7 @@ type File struct {
 	Name     string `json:"name"`
 	FileName string `json:"filename"`
 	Mime     string `json:"mime"`
+	Size     int64  `json:"size"`
 }
 
 func (s *Server) FileGroupListHandler(w http.ResponseWriter, r *http.Request) {
@@ -122,21 +124,13 @@ func (s *Server) FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ct := part.Header.Get("Content-Type")
-		if ct == "" || ct == "application/octet-stream" {
-			if ext := filepath.Ext(part.FileName()); ext != "" {
-				ct = mime.TypeByExtension(ext)
-			} else {
-				ct = http.DetectContentType(contents[:512])
-			}
-		}
-
 		// save record to filegroup
 		created = append(created, File{
 			ID:       id,
 			Name:     part.FormName(),
 			FileName: part.FileName(),
-			Mime:     ct,
+			Mime:     contentTypeForPart(part, contents),
+			Size:     int64(len(contents)),
 		})
 	}
 
@@ -163,6 +157,24 @@ func (s *Server) FileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
+
+}
+
+func contentTypeForPart(part *multipart.Part, contents []byte) string {
+	// if the header had something specific, go with that
+	ct := part.Header.Get("Content-Type")
+	if ct != "" && ct != "application/octet-stream" {
+		return ct
+	}
+
+	// try to determine by extension. the next-most-explicit
+	ct = mime.TypeByExtension(filepath.Ext(part.FileName()))
+	if ct != "" && ct != "application/octet-stream" {
+		return ct
+	}
+
+	// this will always default to *something*. octet-stream is fallback
+	return http.DetectContentType(contents[:512])
 
 }
 

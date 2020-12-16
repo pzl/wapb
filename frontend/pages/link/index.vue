@@ -1,6 +1,6 @@
 <template>
 	<v-row>
-		<v-col>
+		<v-col cols="12" md="">
 			<v-alert v-if="alert" dense border="left" :type="alert.type" dismissable @input="alert = null">{{ alert.message }}</v-alert>
 			<v-text-field name="url" label="URL" hint="URL Destination" v-model="toCreate.url" outlined />
 			<create-meta
@@ -9,7 +9,7 @@
 			/>
 			<v-btn block elevation="2" x-large color="success" :loading="isLoading" @click="create" :disabled="toCreate.url == ''">Create</v-btn>
 		</v-col>
-		<v-col>
+		<v-col cols="12" md="">
 			<link-row v-for="l in links" :key="l.id" v-bind="l" />
 		</v-col>
 	</v-row>
@@ -38,8 +38,8 @@ export default {
 			links: []
 		}
 	},
-	async asyncData({ $http }) {
-		const links = await $http.$get('http://localhost:7473/api/v1/link').then(d => d.data)
+	async asyncData({ $http, $server }) {
+		const links = await $http.$get(`${$server}/api/v1/link`).then(d => d.data)
 		return { links }
 	},
 	methods: {
@@ -50,7 +50,7 @@ export default {
 			}
 			this.alert = null;
 			this.isLoading = true;
-			const data = await this.$http.$post('http://localhost:7473/api/v1/link', this.toCreate).then(d => {
+			const data = await this.$http.$post(`${this.$server}/api/v1/link`, this.toCreate).then(d => {
 				this.isLoading = false;
 				this.toCreate = createFactory()
 				this.$refs.meta.hideTTL()

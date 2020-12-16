@@ -54,7 +54,7 @@ export default {
 		}
 	},
 	async asyncData(context) {
-		const data =  await context.$http.$get('http://localhost:7473/api/v1/text/'+context.params.id)
+		const data =  await context.$http.$get(`${context.$server}/api/v1/text/${context.params.id}`)
 							.catch(e => {
 								console.log(e)
 								context.error(e)
@@ -65,7 +65,7 @@ export default {
 		async processDelete() {
 			this.loading = true;
 			this.alert.show = false;
-			await this.$http.$delete('http://localhost:7473/api/v1/text/'+this.id)
+			await this.$http.$delete(`${this.$server}/api/v1/text/${this.id}`)
 							.then(() => {
 								this.$router.push({
 									path: "/text"

@@ -45,7 +45,7 @@ func (s *Server) doGetOneHandler(w http.ResponseWriter, r *http.Request, sk Stor
 	id := chi.URLParam(r, "id")
 
 	buf, err := getOneBytes(s.DB, nil, sk, id)
-	if err != nil && err == badger.ErrKeyNotFound {
+	if err == badger.ErrKeyNotFound {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
