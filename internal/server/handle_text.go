@@ -1,8 +1,10 @@
 package server
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/go-chi/chi"
@@ -35,32 +37,33 @@ func (s *Server) TextGetHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) TextCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var cr Text
 
-	ct, body := getContentType(r)
-
-	if ct == "text/plain" {
-		buf, err := ioutil.ReadAll(body)
-		if err != nil {
-			s.Log.WithError(err).Error("error reading text body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		setCommonFieldsByQuery(&cr.CommonFields, r)
-		cr.Text = string(buf)
-	} else {
-		if err := jsCfg.NewDecoder(body).Decode(&cr); err != nil {
-			s.Log.WithError(err).Error("error decoding text create body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	handlers := map[string]CreateHandlerFunc{
+		"text/plain": func(body io.Reader, v url.Values) error {
+			buf, err := ioutil.ReadAll(body)
+			cr.Text = string(buf)
+			return err
+		},
+		"application/x-www-form-urlencoded": func(body io.Reader, v url.Values) error {
+			cr.Text = v.Get("text")
+			return nil
+		},
+		"application/json": func(body io.Reader, v url.Values) error {
+			return jsCfg.NewDecoder(body).Decode(&cr)
+		},
 	}
+
+	ct, err := s.doCreateHandler(r, &cr.CommonFields, handlers)
+	if err != nil {
+		s.Log.WithError(err).Error("error creating record")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	if cr.Text == "" {
 		s.Log.Debug("ignoring empty string upload")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	// overwrite non-user-providable fields
-	setCreateCommonFields(&cr.CommonFields)
 
 	buf, err := jsCfg.Marshal(cr)
 	if err != nil {
@@ -75,21 +78,20 @@ func (s *Server) TextCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if accept not given, then send back the same format we got
+	// if accept not specific, then send back the same format we got
 	accept := r.Header.Get("Accept")
-	if accept == "" {
+	if accept == "" || accept == "*/*" {
 		accept = ct
 	}
 
 	if accept == "text/plain" {
 		w.Header().Set("Content-Type", accept) // any header changes must happen BEFORE WriteHeader
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/text/" + cr.ID))
+		w.Write([]byte("http://" + r.Host + "/text/" + cr.ID + "\n"))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Write(buf)
-
 }
 func (s *Server) TextCreateManualHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)

@@ -60,16 +60,16 @@ func (s *Server) FileGroupCreateHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// if accept not given, then send back the same format we got
+	// if accept not specific, then send back the same format we got
 	accept := r.Header.Get("Accept")
-	if accept == "" {
+	if accept == "" || accept == "*/*" {
 		accept = ct
 	}
 
 	if accept == "text/plain" {
 		w.Header().Set("Content-Type", accept) // any header changes must happen BEFORE WriteHeader
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/file/" + cr.ID))
+		w.Write([]byte("http://" + r.Host + "/file/" + cr.ID + "\n"))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)

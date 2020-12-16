@@ -1,8 +1,10 @@
 package server
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/go-chi/chi"
@@ -26,7 +28,7 @@ func (s *Server) LinkGetHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.Header().Set("Content-Type", "text/plain")
-			w.Write([]byte(l.URL))
+			w.Write([]byte(l.URL + "\n"))
 		},
 	}
 
@@ -35,62 +37,63 @@ func (s *Server) LinkGetHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) LinkCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var cr Link
 
-	ct, body := getContentType(r)
-
-	if ct == "text/plain" {
-		buf, err := ioutil.ReadAll(body)
-		if err != nil {
-			s.Log.WithError(err).Error("error reading link body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		setCommonFieldsByQuery(&cr.CommonFields, r)
-		cr.URL = string(buf)
-	} else {
-		if err := jsCfg.NewDecoder(body).Decode(&cr); err != nil {
-			s.Log.WithError(err).Error("error decoding link create body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	handlers := map[string]CreateHandlerFunc{
+		"text/plain": func(body io.Reader, v url.Values) error {
+			buf, err := ioutil.ReadAll(body)
+			cr.URL = string(buf)
+			return err
+		},
+		"application/x-www-form-urlencoded": func(body io.Reader, v url.Values) error {
+			cr.URL = v.Get("url")
+			return nil
+		},
+		"application/json": func(body io.Reader, v url.Values) error {
+			return jsCfg.NewDecoder(body).Decode(&cr)
+		},
 	}
+
+	ct, err := s.doCreateHandler(r, &cr.CommonFields, handlers)
+	if err != nil {
+		s.Log.WithError(err).Error("error creating record")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	if cr.URL == "" {
 		s.Log.Debug("ignoring empty string upload")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	// overwrite non-user-providable fields
-	setCreateCommonFields(&cr.CommonFields)
-
 	buf, err := jsCfg.Marshal(cr)
 	if err != nil {
-		s.Log.WithError(err).Error("error serializing text record")
+		s.Log.WithError(err).Error("error serializing link record")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := writeBytes(s.DB, StorageLinkKey, cr.ID, buf, makeMeta(cr.CommonFields), cr.TTL); err != nil {
-		s.Log.WithError(err).Error("error writing text record")
+		s.Log.WithError(err).Error("error writing link record")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// if accept not given, then send back the same format we got
+	// if accept not specific, then send back the same format we got
 	accept := r.Header.Get("Accept")
-	if accept == "" {
+	if accept == "" || accept == "*/*" {
 		accept = ct
 	}
 
 	if accept == "text/plain" {
 		w.Header().Set("Content-Type", accept) // any header changes must happen BEFORE WriteHeader
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/link/" + cr.ID))
+		w.Write([]byte("http://" + r.Host + "/link/" + cr.ID + "\n"))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Write(buf)
-
 }
+
 func (s *Server) LinkCreateManualHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
