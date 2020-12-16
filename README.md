@@ -27,6 +27,7 @@ I primarily use this as a paste-able handoff utility from phone to computer. I n
 
 - File upload
 - API
+- syntax highlighting
 
 
 **NON Targeted features**
