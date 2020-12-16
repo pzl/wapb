@@ -52,6 +52,7 @@ func (s *Server) routeAPI() {
 		// debug routes to check on file blobs. Not API stable
 		v1.Get("/_contents", s.FileContentsListHandler)
 		v1.Get("/_contents/{fid}", s.FileContentsGetHandler)
+		v1.Delete("/_contents/{fid}", s.FileContentsDeleteHandler)
 
 		v1.Get("/link", s.LinkListHandler)
 		v1.Post("/link", s.LinkCreateHandler)

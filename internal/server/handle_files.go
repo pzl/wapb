@@ -267,6 +267,17 @@ func (s *Server) FileContentsListHandler(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// DEBUG route for cleaning up of leftover resources
+func (s *Server) FileContentsDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "fid")
+	if err := deleteRecord(s.DB, StorageFileKey, id); err != nil {
+		s.Log.WithField("fid", id).WithError(err).Error("unable to delete file contents")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *Server) FileCreateManualHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
