@@ -19,8 +19,8 @@
 			<v-card-text class="content-files">
 				<v-container>
 					<v-row>
-						<v-col v-for="f in files" :key="f.id">
-							<file-card v-bind="f" :group_id="id" />
+						<v-col v-for="f in files" :key="f.id" cols="auto">
+							<file-card v-bind="f" :group_id="id" :burn="burn" />
 						</v-col>
 					</v-row>
 				</v-container>

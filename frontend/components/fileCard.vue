@@ -13,7 +13,8 @@
 				</v-card-actions>
 			</div>
 			<v-avatar v-if="hasPreview" class="ma-3" size="125" tile>
-				<v-img :src="link"></v-img>
+				<v-img v-if="!burn" :src="link"></v-img>
+				<v-sheet v-else color="grey lighten-2" height="100" width="100" shaped><v-icon color="red" x-large>mdi-fire</v-icon></v-sheet>
 			</v-avatar>
 		</div>
 	</v-card>
@@ -31,7 +32,8 @@ export default {
 		name: {},
 		filename: {},
 		size: {},
-		mime: {}
+		mime: {},
+		burn: {},
 	},
 	data() {
 		return {
@@ -97,7 +99,7 @@ export default {
 			return `/api/v1/file/${this.group_id}/${this.id}`
 		},
 		hasPreview() {
-			return this.mime.split(";")[0].split("/")[0] == "image" && this.size < 4*2**20;
+			return this.burn || this.mime.split(";")[0].split("/")[0] == "image" && this.size < 4*2**20;
 		}
 	}
 }
