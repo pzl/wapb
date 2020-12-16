@@ -7,6 +7,9 @@
 		<v-expand-transition>
 			<div v-show="show" class="py-2">
 				<v-divider />
+				<p>You can use this service with other tools, like curl!</p>
+
+				<div class="notes" v-html="notes"></div>
 
 				<h2>Fields</h2>
 				<p>Only the primary field (marked) is required. the rest can be omitted entirely</p>
@@ -29,7 +32,6 @@
 
 
 				<h2>Examples</h2>
-				<p>You can use this service with other tools, like curl!</p>
 
 				<div class="tool" v-for="t in tools" :key="t.name">
 					<h2>{{ t.name }}</h2>
@@ -56,7 +58,8 @@
 export default {
 	props: {
 		fields: {},
-		tools: {}
+		tools: {},
+		notes: {}
 	},
 	data() {
 		return {

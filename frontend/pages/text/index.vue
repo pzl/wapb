@@ -39,7 +39,6 @@ export default {
 			alert: null,
 			texts: [],
 
-
 			instructions: {
 				fields: [{ name: "text", type: "string", description: "(required) Content of the paste" }],
 				tools: [
