@@ -58,10 +58,13 @@ export default {
 			return format(this.ttlExp, 'EEE PPpp')
 		},
 		fileInfo() {
+			if (!this.files) {
+				return ''
+			}
 			return `${this.files.length} File${this.files.length > 1 ? 's' : ''}`
 		},
 		fileDetails() {
-			if (this.burn) {
+			if (this.burn || !this.files) {
 				return ''
 			}
 			if (this.files.length > 2) {

@@ -63,9 +63,17 @@ export default {
 				}
 			})
 			if (data) {
+				data.files = [];
 				let form = new FormData();
 				for (const f of this.toCreate.files) {
 					form.append(f.name, f)
+					data.files.push({
+						name: f.name,
+						filename: f.name,
+						size: f.size,
+						id: '',
+						mime: f.type,
+					})
 				}
 				const uploads = await this.$http.$post(`${this.$server}/api/v1/file/${data.id}`, form)
 					.then(d => {

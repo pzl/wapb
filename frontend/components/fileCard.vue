@@ -55,7 +55,7 @@ export default {
 			}
 
 
-			switch (mime) {
+			switch (mimetype) {
 				case 'text/calendar': return 'mdi-'
 				case "text/csv":
 					return 'mdi-file-table'
