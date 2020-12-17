@@ -63,6 +63,20 @@ func setup() (Config, context.Context, context.CancelFunc, *logrus.Logger) {
 
 }
 
+type SPAFileSystem struct {
+	http.FileSystem
+}
+
+// to satisfy the http.FileSystem interface
+func (s SPAFileSystem) Open(name string) (http.File, error) {
+	f, err := s.FileSystem.Open(name)
+	if os.IsNotExist(err) {
+		// send it to index.html
+		return s.FileSystem.Open("index.html")
+	}
+	return f, err
+}
+
 func setAssetHandler(devMode bool, log *logrus.Logger) server.StaticHandler {
 	var assetHandler http.Handler
 	if devMode {
@@ -72,7 +86,7 @@ func setAssetHandler(devMode bool, log *logrus.Logger) server.StaticHandler {
 		assetHandler = proxy
 	} else {
 		log.Info("serving in production mode, with precompiled assets")
-		assetHandler = http.FileServer(assets)
+		assetHandler = http.FileServer(SPAFileSystem{assets})
 	}
 	return assetHandler
 }
